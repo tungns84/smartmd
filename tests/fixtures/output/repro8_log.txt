@@ -1,0 +1,7 @@
+START
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+sleep(1.0) done 1.001s
+sleep(1.0) done 1.012s
+CONVERT_DONE
+os.kill(8172,15) -> ok 0.000s
+os.kill 0 -> exists 0.000s

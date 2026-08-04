@@ -1,0 +1,6 @@
+START
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+CONVERT_DONE 107.1s
+sentinel pid=7788
+taskkill: 0 SUCCESS: The process with PID 7788 (child process of PID 23316) has been terminated.
+CLEANED

@@ -1,0 +1,7 @@
+Exception ignored in atexit callback: <function attach_or_spawn.<locals>._cleanup at 0x0000024A65947560>
+Traceback (most recent call last):
+  File "D:\projects\smartmd\.venv\Lib\site-packages\surya\inference\backends\spawn.py", line 327, in _cleanup
+    _stop_process(spawn_handle.pid, backend)
+  File "D:\projects\smartmd\.venv\Lib\site-packages\surya\inference\backends\spawn.py", line 131, in _stop_process
+    time.sleep(0.5)
+KeyboardInterrupt: 

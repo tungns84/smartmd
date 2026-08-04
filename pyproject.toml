@@ -1,0 +1,31 @@
+[project]
+name = "smart-pdf2md"
+version = "0.1.0"
+description = "Smart PDF to Markdown — pdf-inspector + Surya local OCR"
+authors = [
+    { name = "tungns84", email = "tungnspfs@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pdf-inspector>=0.2.0",
+    "typer>=0.12",
+    "rich>=13.7",
+    "pdf2image>=1.17",
+    "surya-ocr>=0.22.1",
+]
+
+[project.scripts]
+pdf2md-smart = "smart_pdf2md.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.3,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+
+# uv
+# (uv.lock and .python-version should be committed)
+
+# Test / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Output
+*.md.tmp
+
+# Local binaries (large, tải theo docs/INSTALL.md)
+tools/
