@@ -1,6 +1,6 @@
 """Harness approval test cho output CLI.
 
-Golden nằm trong ``tests/fixtures/output/cli/{name}.approved.txt``. Khi output
+Golden nằm trong ``tests/golden/cli/{name}.approved.txt``. Khi output
 lệch, test ghi ``{name}.actual.txt`` cạnh file approved rồi fail, nên lúc nào
 cũng có thể so hai file để biết đã đổi cái gì.
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-GOLDEN_DIR = Path(__file__).parent / "fixtures" / "output" / "cli"
+GOLDEN_DIR = Path(__file__).parent / "golden" / "cli"
 
 # format_elapsed() tra "12s" hoac "2m15s"; TimeElapsedColumn cua Rich tra "0:00:01".
 _ELAPSED_RE = re.compile(r"\b\d+m\d+s\b|\b\d+s\b")

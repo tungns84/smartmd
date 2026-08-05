@@ -20,7 +20,7 @@ htmlcov/
 .testdb.sqlite
 
 # Golden test: chỉ commit bản .approved.txt, bản .actual.txt là tạm khi lệch
-tests/fixtures/output/cli/*.actual.txt
+tests/golden/cli/*.actual.txt
 
 # Output
 *.md.tmp
@@ -30,3 +30,9 @@ debug-*.log
 
 # Local binaries (large, tải theo docs/INSTALL.md)
 tools/
+# Large local test PDFs / OCR outputs (not on GitHub)
+tests/fixtures/
+
+
+.local-fixtures-backup/
+
