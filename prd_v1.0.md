@@ -1,8 +1,8 @@
 # PRD: Smart PDF to Markdown
-**Kết hợp pdf-inspector + Surya Local**
+**Kết hợp pdf-inspector + PaddleOCR Local**
 
-**Version:** 1.1  
-**Ngày:** 03/08/2026  
+**Version:** 1.2  
+**Ngày:** 04/08/2026  
 **Trạng thái:** Draft  
 **Tác giả:** —
 
@@ -16,7 +16,7 @@
 ### 1.2. Mô tả ngắn
 Hệ thống chuyển đổi PDF sang Markdown chất lượng cao, chạy **hoàn toàn local**, kết hợp:
 - **pdf-inspector**: Phân loại PDF + trích xuất text native cực nhanh
-- **Surya**: OCR local chất lượng cao cho các trang scanned/image-based
+- **PaddleOCR**: OCR local (lang=vi, mobile models) cho các trang scanned/image-based
 
 Hệ thống tự động quyết định trang nào dùng native extraction, trang nào cần OCR, rồi merge thành file Markdown đầy đủ, có cấu trúc rõ ràng và page marker.
 
@@ -34,7 +34,7 @@ Hệ thống tự động quyết định trang nào dùng native extraction, tr
 |---------|-------------------|
 | Tốc độ | Text-based PDF < 300ms/trang |
 | Chất lượng | Reading order tốt, bảng & heading rõ |
-| Tiếng Việt | OCR tiếng Việt đạt mức tốt của Surya |
+| Tiếng Việt | OCR tiếng Việt đạt mức tốt của PaddleOCR (latin_PP-OCRv5_mobile_rec) |
 | Bảo mật | 100% local, không gửi dữ liệu ra ngoài |
 | Dễ dùng | CLI + Python API đơn giản |
 
@@ -84,7 +84,7 @@ Là người dùng xử lý file dài, tôi muốn thấy progress (trang nào �
 ### 5.1. In Scope (v1)
 - Phân loại PDF (TextBased / Scanned / ImageBased / Mixed)
 - Trích xuất text native bằng pdf-inspector
-- OCR các trang cần thiết bằng Surya local
+- OCR các trang cần thiết bằng PaddleOCR local
 - Merge theo đúng thứ tự trang
 - Xuất Markdown có `<!-- Page N -->`
 - Hỗ trợ tiếng Việt + tiếng Anh
@@ -106,7 +106,7 @@ Là người dùng xử lý file dài, tôi muốn thấy progress (trang nào �
 |----|---------|------|--------|
 | F1 | Smart Classification | Phân loại + xác định trang cần OCR | P0 |
 | F2 | Native Extraction | Trích xuất Markdown từ trang text-based | P0 |
-| F3 | Local OCR (Surya) | OCR trang scanned | P0 |
+| F3 | Local OCR (PaddleOCR) | OCR trang scanned | P0 |
 | F4 | Intelligent Merge | Ghép native + OCR theo trang | P0 |
 | F5 | Page Markers | Thêm `<!-- Page N -->` | P0 |
 | F6 | Multi-language | Ưu tiên `vi,en` | P0 |
@@ -135,7 +135,7 @@ pdf-inspector
      pdf2image (render)
           │
           ▼
-       Surya Local OCR
+       PaddleOCR Local
           │
           ▼
      Merge Engine (theo số trang)
@@ -150,7 +150,7 @@ pdf-inspector
 | Thành phần              | Công nghệ              | Lý do                          |
 |-------------------------|------------------------|--------------------------------|
 | Classification + Native | pdf-inspector          | Nhanh, nhẹ, chính xác          |
-| OCR                     | Surya (local)          | Chất lượng cao, layout tốt     |
+| OCR                     | PaddleOCR (local)      | Tiếng Việt tốt, mobile CPU     |
 | Render PDF → Image      | pdf2image + poppler    | Ổn định                        |
 | Ngôn ngữ                | Python 3.10+           | Dễ tích hợp                    |
 | CLI                     | Typer / Click          | Hiện đại, dễ dùng              |
@@ -190,7 +190,7 @@ $ pdf2md-smart bao-cao.pdf -o bao-cao.md --lang vi,en
   Total pages   : 12
   Pages need OCR: [4, 5, 9, 11]
 
-→ Đang OCR 4 trang bằng Surya...
+→ Đang OCR 4 trang bằng PaddleOCR...
   ✓ Page 4  (1,842 ký tự)
   ✓ Page 5  (2,105 ký tự)
   ✓ Page 9  (967 ký tự)
@@ -226,40 +226,41 @@ print(markdown[:500])
 10. User Flow chínhNgười dùng cung cấp file PDF (CLI hoặc API)
 Hệ thống chạy pdf-inspector → phân loại + lấy native markdown
 Nếu TextBased + confidence cao → trả kết quả ngay
-Nếu có trang cần OCR → render ảnh → chạy Surya
+Nếu có trang cần OCR → render ảnh → chạy PaddleOCR
 Merge theo thứ tự trang + thêm page marker
 Xuất file .md
 
 11. Yêu cầu phi chức năngHạng mục
 Yêu cầu
 Bảo mật
-100% local
+100% local — OCR qua PaddleOCR, không gửi dữ liệu ra cloud
 Hiệu năng
-Text-based < 300ms/trang
+Text-based < 300ms/trang; OCR CPU ~1–3s/trang (mobile)
 Phần cứng
-RAM khuyến nghị ≥ 16GB (tối thiểu 8GB)
+RAM khuyến nghị ≥ 8GB
 Hệ điều hành
 macOS, Linux, Windows
 License
-Tuân thủ MIT (pdf-inspector) + Surya license
+Tuân thủ MIT (pdf-inspector) + Apache-2.0 (PaddleOCR / PaddlePaddle)
+
 
 12. Rủi ro & Giải phápRủi ro
 Mức độ
 Giải pháp
-Surya chậm trên CPU
+PaddleOCR chậm trên CPU
 Trung bình
-Khuyến nghị GPU/Apple Silicon, cho phép giảm DPI
-Model Surya nặng
-Thấp
-Cache model sau lần tải đầu
+Mobile models + tắt orientation/unwarping; giảm DPI
+Cài paddlepaddle wheel phức tạp
+Trung bình
+INSTALL ghi rõ CPU index; không pin trong deps chính
 Merge chưa hoàn hảo
 Trung bình
-Fallback rebuild theo trang + cải thiện dần
-License Surya với DN lớn
-Trung bình
-Ghi rõ docs + hỗ trợ fallback PaddleOCR
+Reading-order + paragraph gap heuristic; cải thiện dần
+Model tải lần đầu
+Thấp
+Cache sau lần tải đầu; chạy offline sau đó
 
-13. Lộ trình phát triểnPhase 1 – MVP (2–3 tuần)Tích hợp pdf-inspector + Surya
+13. Lộ trình phát triểnPhase 1 – MVP (2–3 tuần)Tích hợp pdf-inspector + PaddleOCR
 Logic classify → OCR → merge
 CLI cơ bản (như mockup)
 Python API
@@ -273,7 +274,7 @@ Tùy chọn --compact
 
 Phase 3 – Mở rộngHỗ trợ batch
 Docker image
-Cho phép chọn backend OCR (Surya / PaddleOCR)
+Tối ưu GPU PaddleOCR
 Web UI đơn giản (optional)
 
 14. Tiêu chí chấp nhận (Acceptance Criteria)PDF text-based → Markdown gần như tức thì
@@ -281,11 +282,11 @@ PDF scanned tiếng Việt → text đọc được, đúng thứ tự
 PDF Mixed → merge đúng trang native + OCR
 Chạy hoàn toàn offline
 CLI và Python API hoạt động ổn định
-Có hướng dẫn cài đặt Surya rõ ràng
+Có hướng dẫn cài đặt paddlepaddle + PaddleOCR rõ ràng
 
 15. Phụ lục15.1. Tham khảopdf-inspector: https://github.com/firecrawl/pdf-inspector
-Surya: https://github.com/datalab-to/surya
+PaddleOCR: https://github.com/PaddlePaddle/PaddleOCR
 
-15.2. Ghi chú kỹ thuậtSurya 2 cần inference backend (llama.cpp hoặc vllm)
-pdf-inspector hiện chưa trả markdown tách theo từng trang tiện lợi → cần logic fallback khi merge
+15.2. Ghi chú kỹ thuậtPaddleOCR 3.x: `PaddleOCR(lang="vi", ...).predict(image)` — vi qua latin_PP-OCRv5_mobile_rec
+pdf-inspector hiện trả markdown tách theo từng trang → merge theo trang chính xác
 
