@@ -1,0 +1,10 @@
+{% from "macros/icons.html" import credit_coin %}
+<span
+  id="credit-badge"
+  class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-foreground"
+  title="FGold khả dụng"
+>
+  <span class="text-muted-foreground">FGold</span>
+  <strong>{{ credits }}</strong>
+  {{ credit_coin(size=16) }}
+</span>

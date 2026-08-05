@@ -1,0 +1,32 @@
+# Build context must stay tiny — Dockerfile only needs:
+# pyproject.toml, uv.lock, README.md, src/, alembic/, alembic.ini, models.toml
+
+.git
+.venv
+venv
+tools
+tests
+docs
+data
+scripts
+.cursor
+.code-review-graph
+.pytest_cache
+.coverage
+coverage.json
+coverage-floors.json
+.htmlcov
+*.egg-info
+dist
+build
+__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+*.md.tmp
+debug-*.log
+.testdb.sqlite
+.python-version
+prd_v1.0.md
+LICENSE

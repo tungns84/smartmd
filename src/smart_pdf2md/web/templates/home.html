@@ -1,0 +1,211 @@
+{% extends "_layout.html" %}
+{% from "macros/ui.html" import btn, card, card_header, card_content, badge %}
+
+{% block title %}smart-pdf2md — PDF → Markdown{% endblock %}
+
+{% block body_class %}{% endblock %}
+
+{% block body %}
+<header class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+    <a href="/" class="text-lg font-semibold tracking-tight">smart-pdf2md</a>
+    <div class="flex items-center gap-1">
+      {% include "partials/theme_toggle.html" %}
+      <a href="/login" class="rounded-md px-3 py-2 text-base font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">Đăng nhập</a>
+      {% if allow_register %}
+      <a href="/register" class="rounded-md px-3 py-2 text-base font-medium bg-primary text-primary-foreground transition-colors hover:bg-primary/90">Đăng ký</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<main>
+  {# Hero #}
+  <section class="mx-auto grid max-w-5xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
+    <div>
+      <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+        Chuyển PDF thành
+        <span class="bg-gradient-to-b from-primary/60 to-primary bg-clip-text text-transparent">Markdown</span>
+      </h1>
+      <p class="mt-4 text-lg text-muted-foreground">
+        OCR thông minh, chọn trang linh hoạt, theo dõi tiến trình realtime và hệ thống FGold — sẵn sàng cho tài liệu scan lẫn PDF có lớp chữ.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        {% if allow_register %}
+        <a href="/register" class="{{ btn('default', 'lg') }}">Bắt đầu miễn phí</a>
+        {% endif %}
+        <a href="/login" class="{{ btn('outline' if allow_register else 'default', 'lg') }}">Đăng nhập</a>
+      </div>
+    </div>
+
+    <div class="{{ card() }} overflow-hidden">
+      <div class="{{ card_header() }} pb-3">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-sm font-medium">Xem trước chuyển đổi</p>
+          <span class="{{ badge('secondary') }}">đang chạy</span>
+        </div>
+        <p class="font-mono text-xs text-muted-foreground">report.pdf · trang 1-3,5</p>
+      </div>
+      <div class="{{ card_content() }} space-y-3">
+        <div class="flex items-baseline justify-between text-sm">
+          <span class="text-muted-foreground">Trang 2 / 4</span>
+          <span class="font-medium">còn ~1m 20s</span>
+        </div>
+        <div class="h-2 overflow-hidden rounded-full bg-muted">
+          <div class="h-full w-1/2 animate-pulse rounded-full bg-primary transition-all"></div>
+        </div>
+        <p class="text-sm text-muted-foreground">Đang chuyển trang 3…</p>
+        <p class="text-xs text-muted-foreground">Đã chạy 48s · 24s/trang · Ước tính từ các trang đã xong</p>
+        <div class="flex gap-2 pt-1">
+          <span class="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm text-primary-foreground">Tải xuống Markdown</span>
+          <span class="inline-flex h-9 items-center rounded-md border border-input px-4 text-sm text-muted-foreground">Hủy</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# How it works #}
+  <section class="border-t border-border bg-muted/40 py-16">
+    <div class="mx-auto max-w-5xl px-4">
+      <h2 class="text-2xl font-semibold tracking-tight">Cách hoạt động</h2>
+      <p class="mt-2 text-muted-foreground">Bốn bước từ PDF đến Markdown sạch.</p>
+      <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <li class="space-y-2">
+          <span class="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">1</span>
+          <h3 class="font-medium">Tải PDF lên</h3>
+          <p class="text-sm text-muted-foreground">Kéo thả hoặc chọn file, tối đa 50&nbsp;MB mỗi lần.</p>
+        </li>
+        <li class="space-y-2">
+          <span class="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">2</span>
+          <h3 class="font-medium">Chọn trang cần chuyển</h3>
+          <p class="text-sm text-muted-foreground">Chọn tất cả, chỉ trang OCR, hoặc gõ range như <code class="text-foreground">1-3,5</code>.</p>
+        </li>
+        <li class="space-y-2">
+          <span class="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">3</span>
+          <h3 class="font-medium">Chạy OCR / VLM</h3>
+          <p class="text-sm text-muted-foreground">Backend opencode hoặc paddleocr — ước tính FGold trước khi chạy.</p>
+        </li>
+        <li class="space-y-2">
+          <span class="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">4</span>
+          <h3 class="font-medium">Tải Markdown</h3>
+          <p class="text-sm text-muted-foreground">Theo dõi tiến trình realtime rồi tải kết quả khi xong.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  {# Features #}
+  <section class="py-16">
+    <div class="mx-auto max-w-5xl px-4">
+      <h2 class="text-2xl font-semibold tracking-tight">Tính năng</h2>
+      <p class="mt-2 text-muted-foreground">Công cụ thực dụng cho pipeline PDF → Markdown.</p>
+      <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="{{ card() }} p-5">
+          <h3 class="font-medium">Cache OCR theo trang</h3>
+          <p class="mt-2 text-sm text-muted-foreground">Chạy lại không tốn FGold cho trang đã xử lý khi bật cache.</p>
+        </div>
+        <div class="{{ card() }} p-5">
+          <h3 class="font-medium">Chọn trang linh hoạt</h3>
+          <p class="mt-2 text-sm text-muted-foreground">Preset Tất cả / OCR / Text, hoặc khoảng <code class="text-foreground">1-3,5</code>.</p>
+        </div>
+        <div class="{{ card() }} p-5">
+          <h3 class="font-medium">Theo dõi realtime (SSE)</h3>
+          <p class="mt-2 text-sm text-muted-foreground">Thanh tiến trình, ETA và log retry cập nhật trực tiếp trên trang job.</p>
+        </div>
+        <div class="{{ card() }} p-5">
+          <h3 class="font-medium">Nhiều backend</h3>
+          <p class="mt-2 text-sm text-muted-foreground">opencode (VLM) và paddleocr — chọn model và DPI phù hợp tài liệu.</p>
+        </div>
+        <div class="{{ card() }} p-5">
+          <h3 class="font-medium">Ước tính trước khi chạy</h3>
+          <p class="mt-2 text-sm text-muted-foreground">Biết trước FGold, thời gian và USD ước tính trước khi bắt đầu.</p>
+        </div>
+        <div class="{{ card() }} p-5">
+          <h3 class="font-medium">Hệ thống FGold</h3>
+          <p class="mt-2 text-sm text-muted-foreground">Giữ / trừ theo trang OCR; quản trị có thể nạp FGold cho người dùng.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# FAQ #}
+  <section class="border-t border-border bg-muted/40 py-16">
+    <div class="mx-auto max-w-3xl px-4">
+      <h2 class="text-2xl font-semibold tracking-tight">Câu hỏi thường gặp</h2>
+      <div class="mt-8 space-y-3">
+        <details class="{{ card() }} group">
+          <summary class="cursor-pointer list-none px-5 py-4 font-medium marker:content-none [&::-webkit-details-marker]:hidden">
+            <span class="flex items-center justify-between gap-2">
+              smart-pdf2md hỗ trợ loại PDF nào?
+              <span class="text-muted-foreground transition group-open:rotate-180">▾</span>
+            </span>
+          </summary>
+          <p class="border-t border-border px-5 py-4 text-sm text-muted-foreground">
+            Cả PDF scan (cần OCR) và PDF có lớp chữ. Hệ thống đánh dấu trang cần OCR để bạn chọn nhanh.
+          </p>
+        </details>
+        <details class="{{ card() }} group">
+          <summary class="cursor-pointer list-none px-5 py-4 font-medium marker:content-none [&::-webkit-details-marker]:hidden">
+            <span class="flex items-center justify-between gap-2">
+              FGold được tính như thế nào?
+              <span class="text-muted-foreground transition group-open:rotate-180">▾</span>
+            </span>
+          </summary>
+          <p class="border-t border-border px-5 py-4 text-sm text-muted-foreground">
+            Chủ yếu theo số trang cần OCR. Trang đã có trong cache (khi bật Dùng cache trang OCR) không bị trừ lại.
+          </p>
+        </details>
+        <details class="{{ card() }} group">
+          <summary class="cursor-pointer list-none px-5 py-4 font-medium marker:content-none [&::-webkit-details-marker]:hidden">
+            <span class="flex items-center justify-between gap-2">
+              Có cần cài thêm phần mềm không?
+              <span class="text-muted-foreground transition group-open:rotate-180">▾</span>
+            </span>
+          </summary>
+          <p class="border-t border-border px-5 py-4 text-sm text-muted-foreground">
+            Không — dùng web UI trong trình duyệt. Đăng ký, tải PDF, chọn trang và tải Markdown về.
+          </p>
+        </details>
+        <details class="{{ card() }} group">
+          <summary class="cursor-pointer list-none px-5 py-4 font-medium marker:content-none [&::-webkit-details-marker]:hidden">
+            <span class="flex items-center justify-between gap-2">
+              Giới hạn kích thước file?
+              <span class="text-muted-foreground transition group-open:rotate-180">▾</span>
+            </span>
+          </summary>
+          <p class="border-t border-border px-5 py-4 text-sm text-muted-foreground">
+            Mỗi lần tải lên tối đa 50&nbsp;MB, một file PDF mỗi lần.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  {# CTA #}
+  <section class="py-16">
+    <div class="mx-auto max-w-3xl px-4 text-center">
+      <h2 class="text-2xl font-semibold tracking-tight">Sẵn sàng chuyển PDF của bạn?</h2>
+      <p class="mt-2 text-muted-foreground">Tạo tài khoản và bắt đầu chuyển đổi trong vài phút.</p>
+      <div class="mt-6 flex flex-wrap justify-center gap-3">
+        {% if allow_register %}
+        <a href="/register" class="{{ btn('default', 'lg') }}">Đăng ký</a>
+        {% endif %}
+        <a href="/login" class="{{ btn('outline' if allow_register else 'default', 'lg') }}">Đăng nhập</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="border-t border-border py-8">
+  <div class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 text-sm text-muted-foreground sm:flex-row">
+    <p class="font-medium text-foreground">smart-pdf2md</p>
+    <p>PDF → Markdown với OCR, FGold và theo dõi tiến trình.</p>
+    <div class="flex gap-4">
+      <a href="/login" class="hover:text-foreground">Đăng nhập</a>
+      {% if allow_register %}
+      <a href="/register" class="hover:text-foreground">Đăng ký</a>
+      {% endif %}
+    </div>
+  </div>
+</footer>
+{% endblock %}

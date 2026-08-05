@@ -1,0 +1,53 @@
+{% extends "_layout.html" %}
+{% from "macros/ui.html" import btn, nav_link %}
+
+{% block head_extra %}
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <script nonce="{{ request.state.csp_nonce }}">
+    // htmx treats 4xx as errors and skips the swap, which would hide our
+    // validation fragments (upload rejected, not enough credits).
+    document.addEventListener("htmx:beforeSwap", function (evt) {
+      if (evt.detail.xhr.status === 422) {
+        evt.detail.shouldSwap = true;
+        evt.detail.isError = false;
+      }
+    });
+  </script>
+{% endblock %}
+
+{% block body_attrs %}hx-headers='{"x-csrf-token": "{{ csrf_token }}"}'{% endblock %}
+
+{% block body %}
+  {% if user %}
+  {% set path = request.url.path %}
+  {% set lib_active = path == '/documents' or path.startswith('/documents/') %}
+  {% set jobs_active = path == '/jobs' or path.startswith('/jobs/') %}
+  {% set admin_active = path.startswith('/admin') %}
+  <header class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div class="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
+      <a href="/documents" class="text-lg font-semibold tracking-tight text-foreground">smart-pdf2md</a>
+      <nav class="flex items-center gap-1">
+        {{ nav_link('/documents', 'Thư viện', lib_active) }}
+        {{ nav_link('/jobs', 'Chuyển đổi', jobs_active) }}
+        {% if is_admin %}
+        {{ nav_link('/admin', 'Quản trị', admin_active) }}
+        {% endif %}
+      </nav>
+      <div class="ml-auto flex items-center gap-3 text-sm">
+        {% include "partials/credit_badge.html" %}
+        <span class="max-w-[12rem] truncate text-muted-foreground" title="{{ user.email }}">{{ user.email }}</span>
+        {% include "partials/theme_toggle.html" %}
+        <button
+          type="button"
+          class="{{ btn('ghost', 'sm') }}"
+          hx-post="/logout"
+          hx-swap="none"
+        >Đăng xuất</button>
+      </div>
+    </div>
+  </header>
+  {% endif %}
+  <main class="mx-auto max-w-4xl px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+{% endblock %}

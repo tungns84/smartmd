@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import btn, card, input %}
+{% block title %}{{ doc.original_filename }} — smart-pdf2md{% endblock %}
+{% block content %}
+<p class="mb-4 text-sm"><a href="/documents" class="text-muted-foreground underline-offset-4 hover:underline">← Thư viện</a></p>
+
+<h1 class="break-all text-2xl font-semibold tracking-tight">{{ doc.original_filename }}</h1>
+<dl class="mt-4 grid max-w-md grid-cols-2 gap-3 text-sm">
+  <dt class="text-muted-foreground">Trang</dt><dd>{{ doc.page_count }}</dd>
+  <dt class="text-muted-foreground">Loại</dt><dd>{{ doc.pdf_type or "—" }}</dd>
+  <dt class="text-muted-foreground">Trang cần OCR</dt><dd>{{ page_meta | selectattr("needs_ocr") | list | length }}</dd>
+  <dt class="text-muted-foreground">FGold của bạn</dt><dd>{{ credits }}</dd>
+</dl>
+
+<section class="{{ card() }} mt-8 max-w-2xl space-y-5 p-5">
+  <h2 class="font-medium">Chuyển thành Markdown</h2>
+
+  <form id="job-form" class="space-y-5" hx-post="/jobs" hx-target="#job-feedback" hx-swap="innerHTML">
+    <input type="hidden" name="document_id" value="{{ doc.id }}" />
+    <input type="hidden" name="pages" id="pages-field" value="" />
+
+    <fieldset class="space-y-2">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <legend class="text-sm font-medium">Trang cần chuyển</legend>
+        <p class="text-xs text-muted-foreground" id="page-summary"></p>
+      </div>
+
+      <div class="flex flex-wrap gap-2 text-xs">
+        <button type="button" class="{{ btn('outline', 'sm') }}" data-preset="all">Tất cả</button>
+        <button type="button" class="{{ btn('outline', 'sm') }}" data-preset="ocr">Chỉ trang OCR</button>
+        <button type="button" class="{{ btn('outline', 'sm') }}" data-preset="text">Chỉ trang chữ</button>
+        <button type="button" class="{{ btn('outline', 'sm') }}" data-preset="none">Bỏ chọn</button>
+      </div>
+
+      <div id="page-grid" class="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto p-1">
+        {% for page in page_meta %}
+        <label
+          class="relative cursor-pointer select-none"
+          title="Trang {{ page.number }}{% if page.needs_ocr %} — cần OCR{% else %} — có lớp chữ{% endif %}"
+        >
+          <input
+            type="checkbox"
+            class="peer sr-only page-box"
+            value="{{ page.number }}"
+            data-ocr="{{ 1 if page.needs_ocr else 0 }}"
+            checked
+          />
+          <span
+            class="flex h-9 w-11 flex-col items-center justify-center rounded-md border border-border text-xs text-muted-foreground
+                   peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground
+                   peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
+          >
+            <span>{{ page.number }}</span>
+            {% if page.needs_ocr %}<span class="text-[9px] leading-none opacity-70">OCR</span>{% endif %}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <label class="block text-xs text-muted-foreground">
+        Hoặc gõ khoảng trang
+        <input
+          type="text"
+          id="range-box"
+          placeholder="1-3,5"
+          class="{{ input() }} mt-1"
+        />
+      </label>
+      <p class="hidden text-xs text-destructive" id="range-error"></p>
+    </fieldset>
+
+    <fieldset class="space-y-2 border-t border-border pt-4">
+      <legend class="text-sm font-medium">Backend</legend>
+      {% for b in backends %}
+      <label class="flex items-center gap-2 text-sm {% if not b.available %}opacity-50{% endif %}">
+        <input
+          type="radio"
+          name="backend"
+          value="{{ b.id }}"
+          {% if b.id == default_backend %}checked{% endif %}
+          {% if not b.available %}disabled{% endif %}
+        />
+        <span>{{ b.label }}</span>
+        {% if not b.available %}<span class="text-xs text-muted-foreground">({{ b.unavailable_reason }})</span>{% endif %}
+      </label>
+      {% endfor %}
+    </fieldset>
+
+    <label class="block text-sm">
+      <span class="font-medium">Mô hình VLM</span>
+      <select name="vlm_model" id="vlm_model" class="{{ input() }} mt-1">
+        {% for m in models %}
+        <option
+          value="{{ m.id }}"
+          {% if m.id == default_model %}selected{% endif %}
+          {% if not m.available %}disabled{% endif %}
+        >{{ m.label }}{% if not m.available %} (không khả dụng){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="block text-sm">
+      <span class="font-medium">DPI</span>
+      <input type="number" name="dpi" value="200" min="72" max="600" class="{{ input() }} mt-1" />
+    </label>
+
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" name="force_ocr" value="true" />
+      Ép OCR mọi trang đã chọn
+    </label>
+
+    <label class="flex items-center gap-2 text-sm">
+      <input type="hidden" name="use_cache" value="false" />
+      <input type="checkbox" name="use_cache" value="true" checked />
+      Dùng cache trang OCR
+    </label>
+
+    <div id="cost-estimate" class="space-y-1 rounded-md border border-border bg-muted/50 p-3 text-sm">
+      <p>FGold cần: <strong id="est-credits">…</strong></p>
+      <p>Thời gian ước tính: <strong id="est-time">…</strong></p>
+      <p>USD ước tính: <strong id="est-usd">…</strong></p>
+      <p class="text-xs text-muted-foreground" id="est-detail"></p>
+    </div>
+
+    <div id="job-feedback" class="text-sm text-destructive"></div>
+
+    <button type="submit" id="start-btn" class="{{ btn('default') }} w-full disabled:opacity-40">
+      Bắt đầu chuyển đổi
+    </button>
+  </form>
+</section>
+
+{% if recent_jobs %}
+<section class="mt-8 max-w-2xl">
+  <h2 class="mb-2 font-medium">Chuyển đổi gần đây</h2>
+  <div class="{{ card() }} divide-y divide-border">
+    {% for job in recent_jobs %}
+    <div class="flex items-center gap-3 px-4 py-2 text-sm">
+      <a href="/jobs/{{ job.id }}" class="font-mono text-xs text-muted-foreground underline-offset-4 hover:underline">{{ job.id[:8] }}</a>
+      <span class="text-muted-foreground">{{ format_page_selection((job.options_json or {}).get("pages")) }}</span>
+      {% include "partials/status_badge.html" %}
+      <span class="ml-auto text-xs text-muted-foreground">
+        {% if job.created_at %}{{ job.created_at.strftime("%Y-%m-%d %H:%M") }}{% endif %}
+      </span>
+      {% if job.status == "succeeded" and job.output_path %}
+      <a href="/jobs/{{ job.id }}/download" class="text-primary underline-offset-4 hover:underline">Tải xuống</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<script>
+(function () {
+  const documentId = {{ doc.id | tojson }};
+  const pageCount = {{ doc.page_count | tojson }};
+  const form = document.getElementById("job-form");
+  const grid = document.getElementById("page-grid");
+  const boxes = Array.from(document.querySelectorAll(".page-box"));
+  const pagesField = document.getElementById("pages-field");
+  const rangeBox = document.getElementById("range-box");
+  const rangeError = document.getElementById("range-error");
+  const summary = document.getElementById("page-summary");
+  const startBtn = document.getElementById("start-btn");
+  let lastClicked = null;
+  let estimateTimer = null;
+
+  function selected() {
+    return boxes.filter((b) => b.checked).map((b) => Number(b.value));
+  }
+
+  function toSpec(pages) {
+    if (!pages.length) return "";
+    if (pages.length === pageCount) return "";
+    const groups = [];
+    let start = pages[0];
+    let prev = pages[0];
+    for (const page of pages.slice(1)) {
+      if (page === prev + 1) { prev = page; continue; }
+      groups.push(start === prev ? `${start}` : `${start}-${prev}`);
+      start = prev = page;
+    }
+    groups.push(start === prev ? `${start}` : `${start}-${prev}`);
+    return groups.join(",");
+  }
+
+  function parseSpec(spec) {
+    const pages = new Set();
+    for (const token of spec.split(",")) {
+      const part = token.trim();
+      if (!part) continue;
+      const match = part.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (match) {
+        const from = Number(match[1]);
+        const to = Number(match[2]);
+        if (from < 1 || to < from || to > pageCount) return null;
+        for (let p = from; p <= to; p += 1) pages.add(p);
+        continue;
+      }
+      if (!/^\d+$/.test(part)) return null;
+      const page = Number(part);
+      if (page < 1 || page > pageCount) return null;
+      pages.add(page);
+    }
+    return Array.from(pages).sort((a, b) => a - b);
+  }
+
+  function render(fromRangeBox) {
+    const pages = selected();
+    const ocrCount = boxes.filter((b) => b.checked && b.dataset.ocr === "1").length;
+    pagesField.value = toSpec(pages);
+    if (!fromRangeBox) rangeBox.value = pagesField.value;
+    summary.textContent = pages.length
+      ? `${pages.length} / ${pageCount} trang · ${ocrCount} cần OCR`
+      : "Chưa chọn trang";
+    startBtn.disabled = pages.length === 0;
+    scheduleEstimate();
+  }
+
+  grid.addEventListener("click", (evt) => {
+    const box = evt.target.closest("label")?.querySelector(".page-box");
+    if (!box) return;
+    if (evt.shiftKey && lastClicked && lastClicked !== box) {
+      const from = boxes.indexOf(lastClicked);
+      const to = boxes.indexOf(box);
+      const [lo, hi] = from < to ? [from, to] : [to, from];
+      // The clicked box has already toggled; mirror it across the range.
+      for (let i = lo; i <= hi; i += 1) boxes[i].checked = box.checked;
+    }
+    lastClicked = box;
+    render(false);
+  });
+
+  document.querySelectorAll("[data-preset]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const preset = button.dataset.preset;
+      boxes.forEach((box) => {
+        const isOcr = box.dataset.ocr === "1";
+        box.checked =
+          preset === "all" ? true :
+          preset === "none" ? false :
+          preset === "ocr" ? isOcr : !isOcr;
+      });
+      lastClicked = null;
+      render(false);
+    });
+  });
+
+  rangeBox.addEventListener("input", () => {
+    const spec = rangeBox.value.trim();
+    if (!spec) {
+      boxes.forEach((box) => { box.checked = true; });
+      rangeError.classList.add("hidden");
+      render(true);
+      return;
+    }
+    const pages = parseSpec(spec);
+    if (pages === null) {
+      rangeError.textContent = `Dùng số trang từ 1 đến ${pageCount}, ví dụ 1-3,5`;
+      rangeError.classList.remove("hidden");
+      return;
+    }
+    rangeError.classList.add("hidden");
+    const wanted = new Set(pages);
+    boxes.forEach((box) => { box.checked = wanted.has(Number(box.value)); });
+    render(true);
+  });
+
+  form.addEventListener("change", (evt) => {
+    if (!evt.target.classList.contains("page-box")) scheduleEstimate();
+  });
+
+  function scheduleEstimate() {
+    clearTimeout(estimateTimer);
+    estimateTimer = setTimeout(updateEstimate, 200);
+  }
+
+  function humanize(seconds) {
+    if (seconds == null) return "—";
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  }
+
+  async function updateEstimate() {
+    const data = new FormData(form);
+    const params = new URLSearchParams({
+      backend: data.get("backend") || "opencode",
+      model: data.get("vlm_model") || "",
+      dpi: data.get("dpi") || "200",
+      force_ocr: data.getAll("force_ocr").includes("true") ? "true" : "false",
+      use_cache: data.getAll("use_cache").includes("true") ? "true" : "false",
+      pages: pagesField.value,
+    });
+    try {
+      const res = await fetch(`/api/documents/${documentId}/cost-estimate?${params}`);
+      const body = await res.json();
+      if (body.error) {
+        document.getElementById("est-credits").textContent = "—";
+        document.getElementById("est-usd").textContent = "—";
+        document.getElementById("est-time").textContent = "—";
+        document.getElementById("est-detail").textContent = body.error;
+        return;
+      }
+      document.getElementById("est-credits").textContent = body.credits_needed;
+      document.getElementById("est-time").textContent =
+        body.credits_needed === 0 ? "ngay lập tức (cache)" : `~${humanize(body.estimated_seconds)}`;
+      document.getElementById("est-usd").textContent =
+        body.estimated_usd == null ? "n/a" : Number(body.estimated_usd).toFixed(4);
+      document.getElementById("est-detail").textContent =
+        `${body.ocr_pages} trang OCR, ${body.cached_pages} từ cache · số dư ${body.credits_balance}` +
+        ` · thời gian từ ${body.eta_basis}`;
+    } catch (err) {
+      document.getElementById("est-credits").textContent = "?";
+    }
+  }
+
+  render(false);
+})();
+</script>
+{% endblock %}

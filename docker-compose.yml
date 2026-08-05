@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartmd
+      POSTGRES_PASSWORD: smartmd
+      POSTGRES_DB: smartmd
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartmd"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  migrate:
+    build: .
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: postgresql+psycopg://smartmd:smartmd@postgres:5432/smartmd
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    build: .
+    command: pdf2md-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://smartmd:smartmd@postgres:5432/smartmd
+      REDIS_URL: redis://redis:6379/0
+      WEB_DATA_DIR: /data/web
+      PDF2MD_CACHE_DIR: /data/cache
+      PDF2MD_MODEL_REGISTRY: /app/models.toml
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - webdata:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: .
+    command: pdf2md-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://smartmd:smartmd@postgres:5432/smartmd
+      REDIS_URL: redis://redis:6379/0
+      WEB_DATA_DIR: /data/web
+      PDF2MD_CACHE_DIR: /data/cache
+      PDF2MD_MODEL_REGISTRY: /app/models.toml
+    volumes:
+      - webdata:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  webdata:

@@ -1,0 +1,79 @@
+{% from "macros/ui.html" import btn %}
+{% set status_labels = {
+  "queued": "chờ",
+  "running": "đang chạy",
+  "succeeded": "xong",
+  "failed": "lỗi",
+  "cancelled": "đã hủy",
+  "insufficient_credits": "hết FGold",
+} %}
+<div id="job-progress" class="space-y-3">
+  <div class="flex items-center justify-between text-sm">
+    <span class="text-muted-foreground">Trạng thái</span>
+    <span id="job-status" class="font-medium">{{ status_labels.get(job.status, job.status) }}</span>
+  </div>
+
+  <div class="flex items-baseline justify-between text-sm">
+    <span id="job-page-count" class="text-muted-foreground">
+      {% if eta.pages_total %}Trang {{ eta.pages_done }} / {{ eta.pages_total }}{% else %}Đang chuẩn bị…{% endif %}
+    </span>
+    <span id="job-eta" class="font-medium text-foreground">
+      {% if job.status == "queued" %}Đang chờ worker trống
+      {% elif job.status == "succeeded" %}Xong trong {{ format_duration(eta.elapsed_s) }}
+      {% elif job.status == "running" and eta.eta_seconds is not none %}còn ~{{ format_duration(eta.eta_seconds) }}
+      {% elif job.status == "running" %}Đang ước tính…
+      {% endif %}
+    </span>
+  </div>
+
+  <div class="h-2 overflow-hidden rounded-full bg-muted">
+    <div
+      id="job-bar"
+      class="h-full bg-primary transition-all duration-500 {% if job.status in ('queued', 'running') %}animate-pulse{% endif %}"
+      style="width: {{ progress_pct }}%"
+    ></div>
+  </div>
+
+  <p id="job-message" class="text-sm text-muted-foreground">{{ message }}</p>
+
+  <p class="text-xs text-muted-foreground">
+    <span id="job-elapsed">Đã chạy {{ format_duration(eta.elapsed_s) }}</span>
+    <span id="job-rate"> · {{ format_duration(eta.seconds_per_page) }}/trang</span>
+    {% if eta.cached_pages %}<span id="job-cached"> · {{ eta.cached_pages }} trang từ cache</span>{% endif %}
+  </p>
+  <p class="text-xs text-muted-foreground" id="job-basis">Ước tính từ {{ eta.basis }}</p>
+
+  {% if job.status == "running" and eta.eta_seconds and eta.eta_seconds > timeout_budget %}
+  <p class="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
+    Có thể lâu hơn ngân sách {{ format_duration(timeout_budget) }} của worker và bị cắt sớm.
+  </p>
+  {% endif %}
+
+  {% if job.error_message %}
+  <p class="text-sm text-destructive">{{ job.error_message }}</p>
+  {% endif %}
+
+  <div id="job-log" class="hidden max-h-32 space-y-0.5 overflow-y-auto text-xs text-muted-foreground"></div>
+
+  <div class="flex flex-wrap items-center gap-3 pt-1">
+    <div id="job-download" class="{% if job.status != 'succeeded' or not job.output_path %}hidden{% endif %}">
+      <a
+        href="/jobs/{{ job.id }}/download"
+        class="{{ btn('default', 'sm') }}"
+      >Tải xuống Markdown</a>
+    </div>
+    <div id="job-cancel" class="{% if job.status not in ('queued', 'running') %}hidden{% endif %}">
+      <button
+        type="button"
+        class="{{ btn('outline', 'sm') }}"
+        hx-post="/jobs/{{ job.id }}/cancel"
+        hx-swap="none"
+      >Hủy</button>
+    </div>
+    <a
+      href="/documents/{{ job.document_id }}"
+      id="job-again"
+      class="text-sm text-muted-foreground underline-offset-4 hover:underline {% if job.status in ('queued', 'running') %}hidden{% endif %}"
+    >Chuyển lại</a>
+  </div>
+</div>

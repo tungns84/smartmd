@@ -1,0 +1,29 @@
+{% extends "_layout.html" %}
+{% from "macros/ui.html" import btn, card, input %}
+
+{% block title %}Đăng ký — smart-pdf2md{% endblock %}
+{% block body_class %}flex items-center justify-center{% endblock %}
+
+{% block body %}
+<div class="w-full max-w-sm px-4 py-12">
+  <div class="mb-6 flex items-center justify-between">
+    <a href="/" class="text-sm font-semibold tracking-tight">smart-pdf2md</a>
+    {% include "partials/theme_toggle.html" %}
+  </div>
+  <form method="post" action="/register" class="{{ card() }} space-y-4 p-8">
+    <div class="space-y-1.5">
+      <h1 class="text-xl font-semibold tracking-tight">Đăng ký</h1>
+      <p class="text-sm text-muted-foreground">Tạo tài khoản để chuyển PDF sang Markdown.</p>
+    </div>
+    {% if error %}<p class="text-sm text-destructive">{{ error }}</p>{% endif %}
+    <label class="block text-sm font-medium">Email
+      <input name="email" type="email" required value="{{ email or '' }}" class="{{ input() }} mt-1.5" />
+    </label>
+    <label class="block text-sm font-medium">Mật khẩu (tối thiểu 8 ký tự)
+      <input name="password" type="password" minlength="8" required class="{{ input() }} mt-1.5" />
+    </label>
+    <button type="submit" class="{{ btn('default') }} w-full">Tạo tài khoản</button>
+    <p class="text-sm text-muted-foreground">Đã có tài khoản? <a href="/login" class="text-primary underline-offset-4 hover:underline">Đăng nhập</a></p>
+  </form>
+</div>
+{% endblock %}

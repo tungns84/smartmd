@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import card %}
+{% block title %}Job {{ job.id[:8] }} — smart-pdf2md{% endblock %}
+{% block content %}
+<p class="mb-4 text-sm">
+  <a href="/documents" class="text-muted-foreground underline-offset-4 hover:underline">← Thư viện</a>
+  {% if doc %}
+  <span class="mx-1 text-border">/</span>
+  <a href="/documents/{{ job.document_id }}" class="break-all text-muted-foreground underline-offset-4 hover:underline">{{ doc.original_filename }}</a>
+  {% endif %}
+</p>
+
+<h1 class="text-2xl font-semibold tracking-tight">Đang chuyển đổi</h1>
+<p class="mt-1 font-mono text-sm text-muted-foreground">{{ job.id }}</p>
+
+<dl class="mt-4 grid max-w-md grid-cols-2 gap-2 text-sm">
+  <dt class="text-muted-foreground">Trang</dt><dd>{{ page_spec }}</dd>
+  <dt class="text-muted-foreground">Backend</dt><dd>{{ job.backend }}{% if job.vlm_model %} · {{ job.vlm_model }}{% endif %}</dd>
+  <dt class="text-muted-foreground">FGold</dt>
+  <dd>{{ job.credits_charged }} đã trừ / {{ job.credits_held + job.credits_topup }} đang giữ</dd>
+  {% if quality %}
+  <dt class="text-muted-foreground">Chất lượng</dt>
+  <dd>
+    {% if quality.issue_count %}
+    <span class="inline-block rounded px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-900">
+      {{ quality.issue_count }} vấn đề
+    </span>
+    {% if quality.empty_pages %}
+    <span class="ml-1 text-xs text-muted-foreground">{{ quality.empty_pages|length }} trống</span>
+    {% endif %}
+    {% else %}
+    <span class="inline-block rounded px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-900">
+      sạch
+    </span>
+    {% endif %}
+  </dd>
+  {% endif %}
+</dl>
+
+<section class="{{ card() }} mt-6 max-w-lg p-5">
+  {% include "partials/job_progress.html" %}
+</section>
+
+<script>
+(function () {
+  const jobId = {{ job.id | tojson }};
+  const status = {{ job.status | tojson }};
+  const terminal = new Set(["succeeded", "failed", "cancelled", "insufficient_credits"]);
+  const statusLabels = {
+    queued: "chờ",
+    running: "đang chạy",
+    succeeded: "xong",
+    failed: "lỗi",
+    cancelled: "đã hủy",
+    insufficient_credits: "hết FGold",
+  };
+
+  const statusEl = document.getElementById("job-status");
+  const barEl = document.getElementById("job-bar");
+  const msgEl = document.getElementById("job-message");
+  const etaEl = document.getElementById("job-eta");
+  const pageCountEl = document.getElementById("job-page-count");
+  const elapsedEl = document.getElementById("job-elapsed");
+  const rateEl = document.getElementById("job-rate");
+  const basisEl = document.getElementById("job-basis");
+  const logEl = document.getElementById("job-log");
+  const downloadEl = document.getElementById("job-download");
+  const cancelEl = document.getElementById("job-cancel");
+  const againEl = document.getElementById("job-again");
+
+  // Seeded from the server so a reload is accurate before events replay.
+  const state = {
+    total: {{ eta.pages_total | tojson }},
+    done: {{ eta.pages_done | tojson }},
+    cached: {{ eta.cached_pages | tojson }},
+    secondsPerPage: {{ eta.seconds_per_page | tojson }},
+    pageStartedAt: null,
+    firstPageAt: null,
+    currentPage: null,
+    startedAt: Date.now() - {{ (eta.elapsed_s * 1000) | round | int | tojson }},
+    shownEta: {{ eta.eta_seconds | tojson }},
+    lastEventAt: Date.now(),
+  };
+  let currentStatus = status;
+  const ALPHA = 0.3;
+
+  function setStatus(next) {
+    currentStatus = next;
+    statusEl.textContent = statusLabels[next] || next;
+  }
+
+  function humanize(seconds) {
+    const total = Math.max(0, Math.round(seconds));
+    if (total < 60) return `${total}s`;
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    if (minutes < 60) return `${minutes}m ${String(secs).padStart(2, "0")}s`;
+    return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`;
+  }
+
+  function setBar() {
+    const total = state.total + state.cached;
+    const done = state.done + state.cached;
+    const pct = total > 0 ? (done / total) * 100 : 5;
+    barEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    if (state.total) {
+      pageCountEl.textContent = `Trang ${state.done} / ${state.total}`;
+    }
+  }
+
+  function rawEta() {
+    if (!state.total) return null;
+    const remaining = Math.max(0, state.total - state.done);
+    if (remaining === 0) return 0;
+    // Throughput once ≥2 pages done; otherwise fall back to prior seconds/page.
+    if (state.done >= 2 && state.firstPageAt) {
+      const elapsed = Math.max(0.001, (Date.now() - state.firstPageAt) / 1000);
+      const throughput = state.done / elapsed;
+      return throughput > 0 ? Math.max(0, remaining / throughput) : null;
+    }
+    const onCurrent = state.pageStartedAt ? (Date.now() - state.pageStartedAt) / 1000 : 0;
+    return Math.max(0, remaining * state.secondsPerPage - onCurrent);
+  }
+
+  function refreshEta(recompute) {
+    if (terminal.has(currentStatus)) return;
+    const fresh = rawEta();
+    if (fresh === null) {
+      etaEl.textContent = currentStatus === "queued"
+        ? "Đang chờ worker trống"
+        : "Đang ước tính…";
+      return;
+    }
+    if (recompute || state.shownEta == null) {
+      // Only jump upward when the new estimate is materially higher, so one
+      // slow page does not make the number bounce.
+      state.shownEta =
+        state.shownEta == null || fresh > state.shownEta * 1.25 || fresh < state.shownEta
+          ? fresh
+          : state.shownEta;
+    }
+
+    const stalledFor = (Date.now() - state.lastEventAt) / 1000;
+    if (state.currentPage && stalledFor > state.secondsPerPage * 2.5) {
+      etaEl.textContent = `trang ${state.currentPage} chậm (${humanize(stalledFor)})`;
+      return;
+    }
+    etaEl.textContent = state.shownEta < 10 ? "Đang hoàn tất…" : `còn ~${humanize(state.shownEta)}`;
+  }
+
+  function tick() {
+    elapsedEl.textContent = `Đã chạy ${humanize((Date.now() - state.startedAt) / 1000)}`;
+    if (state.shownEta != null) state.shownEta = Math.max(0, state.shownEta - 1);
+    refreshEta(false);
+  }
+
+  function note(text) {
+    logEl.classList.remove("hidden");
+    const line = document.createElement("p");
+    line.textContent = text;
+    logEl.prepend(line);
+  }
+
+  function onTerminal(finalStatus, errorMessage) {
+    setStatus(finalStatus);
+    barEl.style.width = "100%";
+    barEl.classList.remove("animate-pulse");
+    cancelEl.classList.add("hidden");
+    againEl.classList.remove("hidden");
+    clearInterval(timer);
+    if (errorMessage) {
+      msgEl.textContent = errorMessage;
+      msgEl.classList.add("text-destructive");
+    }
+    if (finalStatus === "succeeded") {
+      msgEl.textContent = "Xong";
+      etaEl.textContent = `Xong trong ${humanize((Date.now() - state.startedAt) / 1000)}`;
+      downloadEl.classList.remove("hidden");
+    } else {
+      etaEl.textContent = "";
+    }
+  }
+
+  if (terminal.has(status)) return;
+
+  const timer = setInterval(tick, 1000);
+  const stream = new EventSource(`/jobs/${jobId}/events`);
+
+  stream.addEventListener("OcrStarted", (event) => {
+    const payload = JSON.parse(event.data).data || {};
+    state.total = Number(payload.total || 0);
+    setStatus("running");
+    setBar();
+    refreshEta(true);
+  });
+
+  stream.addEventListener("CacheSummary", (event) => {
+    const payload = JSON.parse(event.data).data || {};
+    state.cached = Number(payload.hits || 0);
+    setBar();
+  });
+
+  stream.addEventListener("PageStarted", (event) => {
+    const body = JSON.parse(event.data);
+    const payload = body.data || {};
+    state.currentPage = payload.page || null;
+    state.pageStartedAt = body.ts || Date.now();
+    if (!state.firstPageAt) state.firstPageAt = state.pageStartedAt;
+    state.lastEventAt = Date.now();
+    setStatus("running");
+    msgEl.textContent = `Đang chuyển… (${state.done}/${state.total || "?"})`;
+    refreshEta(true);
+  });
+
+  stream.addEventListener("PageDone", (event) => {
+    const body = JSON.parse(event.data);
+    const payload = body.data || {};
+    const finishedAt = body.ts || Date.now();
+    state.done += 1;
+    if (state.firstPageAt && state.done >= 2) {
+      const elapsed = Math.max(0.001, (finishedAt - state.firstPageAt) / 1000);
+      state.secondsPerPage = elapsed / state.done;
+      rateEl.textContent = ` · ${humanize(state.secondsPerPage)}/trang`;
+      basisEl.textContent = `Ước tính từ thông lượng (${state.done} trang / ${Math.round(elapsed)}s)`;
+    } else if (state.pageStartedAt) {
+      const observed = Math.max(0, (finishedAt - state.pageStartedAt) / 1000);
+      if (observed > 0) {
+        state.secondsPerPage = ALPHA * observed + (1 - ALPHA) * state.secondsPerPage;
+        rateEl.textContent = ` · ${humanize(state.secondsPerPage)}/trang`;
+        basisEl.textContent = `Ước tính từ ${state.done} trang đã xong`;
+      }
+    }
+    state.currentPage = null;
+    state.pageStartedAt = null;
+    state.lastEventAt = Date.now();
+    msgEl.textContent = `Trang ${payload.page} xong`;
+    setBar();
+    refreshEta(true);
+  });
+
+  stream.addEventListener("PageRetry", (event) => {
+    const payload = JSON.parse(event.data).data || {};
+    note(`Thử lại trang ${payload.page} (lần ${payload.attempt}, ${payload.reason})`);
+    state.lastEventAt = Date.now();
+  });
+
+  stream.addEventListener("FallbackUsed", (event) => {
+    const payload = JSON.parse(event.data).data || {};
+    note(`Trang ${payload.page} chuyển sang ${payload.actual_model}`);
+  });
+
+  stream.addEventListener("Completed", () => {
+    onTerminal("succeeded");
+    stream.close();
+  });
+
+  stream.onerror = () => {
+    fetch(`/jobs/${jobId}`, { headers: { Accept: "application/json" } })
+      .then((res) => res.json())
+      .then((body) => {
+        if (terminal.has(body.status)) {
+          onTerminal(body.status, body.error_message);
+          stream.close();
+          return;
+        }
+        state.total = body.pages_total || state.total;
+        state.done = body.pages_done || state.done;
+        state.cached = body.cached_pages || state.cached;
+        if (body.seconds_per_page) state.secondsPerPage = body.seconds_per_page;
+        state.shownEta = body.eta_seconds;
+        setBar();
+        refreshEta(true);
+      })
+      .catch(() => {});
+  };
+})();
+</script>
+{% endblock %}

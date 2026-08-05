@@ -1,0 +1,22 @@
+{% set styles = {
+  "queued": "border-border text-muted-foreground dark:border-border",
+  "running": "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400",
+  "succeeded": "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400",
+  "failed": "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
+  "cancelled": "border-border text-muted-foreground",
+  "insufficient_credits": "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400",
+} %}
+{% set labels = {
+  "queued": "chờ",
+  "running": "đang chạy",
+  "succeeded": "xong",
+  "failed": "lỗi",
+  "cancelled": "đã hủy",
+  "insufficient_credits": "hết FGold",
+} %}
+<span class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs {{ styles.get(job.status, 'border-border text-muted-foreground') }}">
+  {% if job.status == "running" or job.status == "queued" %}
+  <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-current"></span>
+  {% endif %}
+  {{ labels.get(job.status, job.status) }}
+</span>

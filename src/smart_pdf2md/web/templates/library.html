@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import btn, card %}
+{% block title %}Thư viện — smart-pdf2md{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Thư viện</h1>
+    <p class="mt-1 text-sm text-muted-foreground">Tải PDF lên và chuyển thành Markdown.</p>
+  </div>
+</div>
+
+<form
+  id="upload-form"
+  class="mb-8"
+  hx-post="/documents"
+  hx-encoding="multipart/form-data"
+  hx-target="#upload-feedback"
+  hx-swap="innerHTML"
+>
+  <input
+    id="pdf-file"
+    type="file"
+    name="file"
+    accept="application/pdf,.pdf"
+    required
+    class="peer sr-only"
+  />
+  <label
+    for="pdf-file"
+    id="dropzone"
+    class="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border
+           bg-card px-6 py-10 text-center transition-colors hover:border-primary/50 hover:bg-muted/50
+           peer-focus-visible:border-primary peer-focus-visible:outline peer-focus-visible:outline-2
+           peer-focus-visible:outline-offset-2"
+  >
+    <span id="dropzone-idle">
+      <span class="block text-sm font-medium text-foreground">Kéo PDF vào đây, hoặc bấm để chọn</span>
+      <span class="mt-1 block text-xs text-muted-foreground">Một tệp mỗi lần, tối đa {{ max_upload_mb }} MB</span>
+    </span>
+    <span id="dropzone-busy" class="hidden w-full max-w-sm">
+      <span id="upload-name" class="block truncate text-sm font-medium text-foreground"></span>
+      <span class="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <span id="upload-bar" class="block h-full bg-primary transition-all duration-200" style="width: 0%"></span>
+      </span>
+      <span id="upload-status" class="mt-1 block text-xs text-muted-foreground">Đang tải lên…</span>
+    </span>
+  </label>
+  <noscript>
+    <button type="submit" class="{{ btn('default', 'sm') }} mt-2">Tải lên</button>
+  </noscript>
+  <div id="upload-feedback" class="mt-2 text-sm text-destructive"></div>
+</form>
+
+<script>
+(function () {
+  const maxBytes = {{ max_upload_mb }} * 1024 * 1024;
+  const form = document.getElementById("upload-form");
+  const input = document.getElementById("pdf-file");
+  const zone = document.getElementById("dropzone");
+  const idle = document.getElementById("dropzone-idle");
+  const busy = document.getElementById("dropzone-busy");
+  const nameEl = document.getElementById("upload-name");
+  const barEl = document.getElementById("upload-bar");
+  const statusEl = document.getElementById("upload-status");
+  const feedback = document.getElementById("upload-feedback");
+
+  function humanSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  function setIdle() {
+    idle.classList.remove("hidden");
+    busy.classList.add("hidden");
+    zone.classList.remove("pointer-events-none", "opacity-60");
+  }
+
+  function setBusy(file) {
+    feedback.textContent = "";
+    nameEl.textContent = `${file.name} · ${humanSize(file.size)}`;
+    barEl.style.width = "0%";
+    statusEl.textContent = "Đang tải lên…";
+    idle.classList.add("hidden");
+    busy.classList.remove("hidden");
+    zone.classList.add("pointer-events-none", "opacity-60");
+  }
+
+  function reject(message) {
+    feedback.textContent = message;
+    input.value = "";
+    setIdle();
+  }
+
+  function upload(file) {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+      reject("Chỉ chấp nhận tệp PDF.");
+      return;
+    }
+    if (file.size > maxBytes) {
+      reject(`Tệp này ${humanSize(file.size)}; giới hạn là {{ max_upload_mb }} MB.`);
+      return;
+    }
+    setBusy(file);
+    form.requestSubmit();
+  }
+
+  input.addEventListener("change", () => upload(input.files[0]));
+
+  ["dragenter", "dragover"].forEach((name) =>
+    zone.addEventListener(name, (evt) => {
+      evt.preventDefault();
+      zone.classList.add("border-primary", "bg-muted");
+    })
+  );
+  ["dragleave", "drop"].forEach((name) =>
+    zone.addEventListener(name, () =>
+      zone.classList.remove("border-primary", "bg-muted")
+    )
+  );
+  zone.addEventListener("drop", (evt) => {
+    evt.preventDefault();
+    const file = evt.dataTransfer && evt.dataTransfer.files[0];
+    if (!file) return;
+    // Mirror the drop into the real input so htmx serializes it.
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    upload(file);
+  });
+
+  // Without this the browser navigates away when a file misses the zone.
+  ["dragover", "drop"].forEach((name) =>
+    window.addEventListener(name, (evt) => evt.preventDefault())
+  );
+
+  form.addEventListener("htmx:xhr:progress", (evt) => {
+    if (!evt.detail.total) return;
+    const pct = Math.round((evt.detail.loaded / evt.detail.total) * 100);
+    barEl.style.width = `${pct}%`;
+    if (pct >= 100) statusEl.textContent = "Đang đọc trang…";
+  });
+
+  form.addEventListener("htmx:afterRequest", (evt) => {
+    // A 204 carries HX-Redirect; keep the busy state until the page navigates.
+    if (evt.detail.successful) return;
+    input.value = "";
+    setIdle();
+  });
+})();
+</script>
+
+{% if documents %}
+<div class="{{ card() }} overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-muted text-muted-foreground">
+      <tr>
+        <th class="px-3 py-2 font-medium">Tệp</th>
+        <th class="px-3 py-2 font-medium">Trang</th>
+        <th class="px-3 py-2 font-medium">Loại</th>
+        <th class="px-3 py-2 font-medium">Lần chạy gần nhất</th>
+        <th class="px-3 py-2 font-medium">Đã tải lên</th>
+        <th class="px-3 py-2 text-right font-medium">Tải xuống</th>
+      </tr>
+    </thead>
+    <tbody id="document-rows">
+      {% for doc in documents %}
+      {% include "partials/document_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
+  Chưa có tài liệu. Tải một PDF lên để bắt đầu.
+</p>
+{% endif %}
+{% endblock %}

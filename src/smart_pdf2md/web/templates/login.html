@@ -1,0 +1,31 @@
+{% extends "_layout.html" %}
+{% from "macros/ui.html" import btn, card, input %}
+
+{% block title %}Đăng nhập — smart-pdf2md{% endblock %}
+{% block body_class %}flex items-center justify-center{% endblock %}
+
+{% block body %}
+<div class="w-full max-w-sm px-4 py-12">
+  <div class="mb-6 flex items-center justify-between">
+    <a href="/" class="text-sm font-semibold tracking-tight">smart-pdf2md</a>
+    {% include "partials/theme_toggle.html" %}
+  </div>
+  <form method="post" action="/login" class="{{ card() }} space-y-4 p-8">
+    <div class="space-y-1.5">
+      <h1 class="text-xl font-semibold tracking-tight">Đăng nhập</h1>
+      <p class="text-sm text-muted-foreground">Nhập email và mật khẩu để tiếp tục.</p>
+    </div>
+    {% if error %}<p class="text-sm text-destructive">{{ error }}</p>{% endif %}
+    <label class="block text-sm font-medium">Email
+      <input name="email" type="email" required value="{{ email or '' }}" class="{{ input() }} mt-1.5" />
+    </label>
+    <label class="block text-sm font-medium">Mật khẩu
+      <input name="password" type="password" required class="{{ input() }} mt-1.5" />
+    </label>
+    <button type="submit" class="{{ btn('default') }} w-full">Đăng nhập</button>
+    {% if allow_register %}
+    <p class="text-sm text-muted-foreground">Chưa có tài khoản? <a href="/register" class="text-primary underline-offset-4 hover:underline">Đăng ký</a></p>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

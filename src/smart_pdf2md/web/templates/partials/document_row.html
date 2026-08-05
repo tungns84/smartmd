@@ -1,0 +1,34 @@
+{% from "macros/ui.html" import btn %}
+{% set latest = latest_jobs.get(doc.id) %}
+{% set result = latest_outputs.get(doc.id) %}
+<tr class="border-t border-border hover:bg-muted/50">
+  <td class="px-3 py-2">
+    <a href="/documents/{{ doc.id }}" class="break-all text-foreground underline-offset-4 hover:underline">{{ doc.original_filename }}</a>
+  </td>
+  <td class="px-3 py-2 text-muted-foreground">{{ doc.page_count }}</td>
+  <td class="px-3 py-2 text-muted-foreground">{{ doc.pdf_type or "—" }}</td>
+  <td class="px-3 py-2">
+    {% if latest %}
+      {% if latest.status in ("queued", "running") %}
+      <a href="/jobs/{{ latest.id }}" class="inline-block">
+        {% with job = latest %}{% include "partials/status_badge.html" %}{% endwith %}
+      </a>
+      {% else %}
+      {% with job = latest %}{% include "partials/status_badge.html" %}{% endwith %}
+      {% endif %}
+    {% else %}
+    <span class="text-xs text-muted-foreground">chưa chuyển</span>
+    {% endif %}
+  </td>
+  <td class="px-3 py-2 text-xs text-muted-foreground">
+    {% if doc.created_at %}{{ doc.created_at.strftime("%Y-%m-%d %H:%M") }}{% else %}—{% endif %}
+  </td>
+  <td class="whitespace-nowrap px-3 py-2 text-right">
+    {% if result %}
+    <a href="/jobs/{{ result.id }}/download" class="{{ btn('default', 'sm') }} h-7 px-3 text-xs">Markdown</a>
+    {% else %}
+    <a href="/documents/{{ doc.id }}" class="text-xs text-muted-foreground underline-offset-4 hover:underline">Chuyển đổi</a>
+    {% endif %}
+    <a href="/documents/{{ doc.id }}/download" class="ml-2 text-xs text-muted-foreground underline-offset-4 hover:underline">PDF</a>
+  </td>
+</tr>

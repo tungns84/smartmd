@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import card, btn, input %}
+{% block title %}Quản trị — smart-pdf2md{% endblock %}
+{% block content %}
+<h1 class="mb-2 text-2xl font-semibold tracking-tight">Quản trị</h1>
+<p class="mb-6 text-sm text-muted-foreground">Tạo người dùng và đặt số dư FGold.</p>
+
+<div class="{{ card() }} mb-6 p-4">
+  <h2 class="mb-3 text-base font-medium">Tạo người dùng</h2>
+  <form
+    class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+    hx-post="/admin/users"
+    hx-target="#create-user-feedback"
+    hx-swap="innerHTML"
+  >
+    <label class="block min-w-[12rem] flex-1 space-y-1 text-sm">
+      <span class="text-muted-foreground">Email</span>
+      <input
+        type="email"
+        name="email"
+        required
+        autocomplete="off"
+        class="{{ input() }}"
+        placeholder="user@example.com"
+      />
+    </label>
+    <label class="block min-w-[12rem] flex-1 space-y-1 text-sm">
+      <span class="text-muted-foreground">Mật khẩu (tối thiểu 8)</span>
+      <input
+        type="password"
+        name="password"
+        required
+        minlength="8"
+        autocomplete="new-password"
+        class="{{ input() }}"
+      />
+    </label>
+    <button type="submit" class="{{ btn('default') }}">Tạo người dùng</button>
+  </form>
+  <div id="create-user-feedback" class="mt-2 text-sm text-destructive"></div>
+</div>
+
+<div class="{{ card() }} overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-muted text-muted-foreground">
+      <tr>
+        <th class="px-3 py-2 font-medium">Email</th>
+        <th class="px-3 py-2 font-medium">Vai trò</th>
+        <th class="px-3 py-2 font-medium">FGold</th>
+        <th class="px-3 py-2 font-medium">Đặt FGold</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      {% include "partials/admin_user_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
