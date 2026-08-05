@@ -1,0 +1,9 @@
+→ Đang phân tích PDF bằng pdf-inspector: scan.pdf
+→ PDF type: mixed | Confidence: 0.50 | Total pages: 3 | Pages need OCR: [2, 3]
+→ Cache hit 0 trang, OCR còn 2 trang
+→ Đang OCR 2 trang bằng opencode (qwen3.6-plus)...
+  ✓ Page 2 (20 ký tự)
+  ✓ Page 3 (20 ký tự)
+  OCR 2/2  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% <TIME>
+→ Cache: 0 hit / 2 miss
+✅ Đã lưu: out.md (3 trang) — <ELAPSED> | cache 0 hit / 2 miss | ~$0.0042 (in 2.5k / out 1.2k)

@@ -1,0 +1,9 @@
+                          doc.pdf
+┌─────────────────┬────────────────────────────────────────┐
+│ PDF type        │ text_based                             │
+│ Confidence      │ 1.00                                   │
+│ Total pages     │ 8                                      │
+│ Pages need OCR  │ []                                     │
+│ Encoding issues │ False                                  │
+│ Recommendation  │ Dùng native extraction (không cần OCR) │
+└─────────────────┴────────────────────────────────────────┘

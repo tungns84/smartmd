@@ -1,0 +1,70 @@
+{
+  "smart_pdf2md/cache.py": {
+    "branch": 65.0,
+    "line": 82.14
+  },
+  "smart_pdf2md/converter.py": {
+    "branch": 85.0,
+    "line": 89.0
+  },
+  "smart_pdf2md/env.py": {
+    "branch": 75.0,
+    "line": 100.0
+  },
+  "smart_pdf2md/headers.py": {
+    "branch": 85.0,
+    "line": 90.0
+  },
+  "smart_pdf2md/merge.py": {
+    "branch": 90.0,
+    "line": 95.0
+  },
+  "smart_pdf2md/quality.py": {
+    "branch": 80.0,
+    "line": 90.0
+  },
+  "smart_pdf2md/ocr/opencode_backend.py": {
+    "branch": 75.0,
+    "line": 85.0
+  },
+  "smart_pdf2md/ocr/opencode_pricing.py": {
+    "branch": 83.33,
+    "line": 94.12
+  },
+  "smart_pdf2md/ocr/vlm/dialects/anthropic.py": {
+    "branch": 62.5,
+    "line": 87.5
+  },
+  "smart_pdf2md/ocr/vlm/dialects/openai.py": {
+    "branch": 31.82,
+    "line": 63.16
+  },
+  "smart_pdf2md/ocr/vlm/images.py": {
+    "branch": 100.0,
+    "line": 100.0
+  },
+  "smart_pdf2md/ocr/vlm/overlay.py": {
+    "branch": 82.35,
+    "line": 82.8
+  },
+  "smart_pdf2md/ocr/vlm/registry.py": {
+    "branch": 68.75,
+    "line": 89.36
+  },
+  "smart_pdf2md/web/credits.py": {
+    "branch": 64.29,
+    "line": 83.33
+  },
+  "smart_pdf2md/web/deps.py": {
+    "branch": 81.82,
+    "line": 91.38
+  },
+  "smart_pdf2md/web/job_options.py": {
+    "branch": 87.5,
+    "line": 94.19
+  },
+  "smart_pdf2md/web/security.py": {
+    "branch": 100.0,
+    "line": 100.0
+  }
+}

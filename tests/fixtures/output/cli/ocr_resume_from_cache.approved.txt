@@ -1,0 +1,7 @@
+→ Đang phân tích PDF bằng pdf-inspector: scan.pdf
+→ PDF type: mixed | Confidence: 0.50 | Total pages: 3 | Pages need OCR: [2, 3]
+→ Cache hit 2 trang, OCR còn 0 trang
+  ✓ Page 2 (cache)
+  ✓ Page 3 (cache)
+→ Cache: 2 hit / 0 miss
+✅ Đã lưu: two.md (3 trang) — <ELAPSED> | cache 2 hit / 0 miss

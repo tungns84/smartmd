@@ -1,0 +1,3 @@
+→ Đang phân tích PDF bằng pdf-inspector: doc.pdf
+→ PDF type: text_based | Confidence: 1.00 | Total pages: 8 | Pages need OCR: []
+✅ Đã lưu: out.md (8 trang) — <ELAPSED>
