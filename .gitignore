@@ -30,3 +30,6 @@ debug-*.log
 
 # Local binaries (large, tải theo docs/INSTALL.md)
 tools/
+# Large local test PDFs / OCR outputs (not on GitHub)
+tests/fixtures/
+
