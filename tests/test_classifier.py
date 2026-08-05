@@ -47,3 +47,44 @@ def test_extract_pages_vietnamese_diacritics():
     combined = "\n".join(p.markdown for p in pages)
     assert "Thời lượng" in combined
     assert "Bước" in combined
+
+
+def test_extract_pages_falls_back_to_poppler_when_inspector_returns_zero(monkeypatch):
+    """Some ObjStm PDFs make pdf-inspector report page_count=0; poppler still knows."""
+    import pdf_inspector
+
+    class FakeResult:
+        pdf_type = "scanned"
+        markdown = None
+        page_count = 0
+        processing_time_ms = 1
+        pages_needing_ocr = []
+        title = None
+        confidence = 0.9
+        is_complex_layout = False
+        pages_with_tables = []
+        pages_with_columns = []
+        has_encoding_issues = False
+
+    class FakeExtraction:
+        pages = []
+        pages_with_tables = []
+        pages_with_columns = []
+        pages_needing_ocr = []
+        is_complex = False
+
+    monkeypatch.setattr(pdf_inspector, "process_pdf", lambda path: FakeResult())
+    monkeypatch.setattr(
+        pdf_inspector, "extract_pages_markdown", lambda path: FakeExtraction()
+    )
+    monkeypatch.setattr(
+        "smart_pdf2md.classifier.page_count_from_poppler",
+        lambda path, poppler_path=None: 327,
+    )
+
+    pages, analysis = extract_pages(FIXTURES / "WB-1.pdf")
+    assert analysis.page_count == 327
+    assert analysis.pdf_type == "scanned"
+    assert len(pages) == 327
+    assert pages[0].needs_ocr is True
+    assert analysis.pages_needing_ocr == list(range(1, 328))

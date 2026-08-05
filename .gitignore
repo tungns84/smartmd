@@ -6,16 +6,27 @@ dist/
 build/
 .venv/
 
+# Secrets / local env
+.env
+
 # uv
 # (uv.lock and .python-version should be committed)
 
 # Test / tooling
 .pytest_cache/
 .coverage
+coverage.json
 htmlcov/
+.testdb.sqlite
+
+# Golden test: chỉ commit bản .approved.txt, bản .actual.txt là tạm khi lệch
+tests/fixtures/output/cli/*.actual.txt
 
 # Output
 *.md.tmp
+
+# Agent / debug session logs
+debug-*.log
 
 # Local binaries (large, tải theo docs/INSTALL.md)
 tools/

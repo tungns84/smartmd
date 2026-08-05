@@ -23,6 +23,28 @@ def resolve_poppler_path(explicit: Optional[str] = None) -> Optional[str]:
     return None
 
 
+def page_count_from_poppler(
+    pdf_path: str | Path,
+    *,
+    poppler_path: Optional[str] = None,
+) -> Optional[int]:
+    """Page count via poppler ``pdfinfo`` — works when pdf-inspector returns 0."""
+    try:
+        from pdf2image import pdfinfo_from_path
+    except ImportError:
+        return None
+    pop = resolve_poppler_path(poppler_path)
+    try:
+        info = pdfinfo_from_path(str(pdf_path), poppler_path=pop)
+    except Exception:
+        return None
+    try:
+        pages = int(info.get("Pages") or 0)
+    except (TypeError, ValueError):
+        return None
+    return pages if pages > 0 else None
+
+
 def _contiguous_groups(page_numbers: list[int]) -> list[list[int]]:
     groups: list[list[int]] = []
     for page in sorted(set(page_numbers)):

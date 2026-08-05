@@ -21,9 +21,9 @@ def test_merge_multiple_pages_order():
     assert "<!-- Page 2 -->" in merged
 
 
-def test_merge_skips_empty_pages():
+def test_merge_marks_empty_pages():
     merged = merge_pages([_page(0, ""), _page(1, "Có nội dung")])
-    assert "<!-- Page 1 -->" not in merged
+    assert "<!-- Page 1: OCR rỗng -->" in merged
     assert "<!-- Page 2 -->" in merged
 
 
@@ -44,4 +44,6 @@ def test_merge_empty_input():
 
 
 def test_merge_all_empty():
-    assert merge_pages([_page(0, ""), _page(1, "")]) == ""
+    merged = merge_pages([_page(0, ""), _page(1, "")])
+    assert "<!-- Page 1: OCR rỗng -->" in merged
+    assert "<!-- Page 2: OCR rỗng -->" in merged

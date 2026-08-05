@@ -44,7 +44,7 @@ def test_convert_scanned_uses_ocr_backend(monkeypatch):
     class _FailingBackend(OcrBackend):
         name = "fake"
 
-        def ocr_pages(self, pages, pdf_path, options, on_page_done=None):
+        def ocr_pages(self, pages, pdf_path, options, on_page_done=None, on_page_start=None):
             raise OcrBackendError("backend down")
 
     monkeypatch.setattr(conv, "get_ocr_backend", lambda name: _FailingBackend())
@@ -73,7 +73,7 @@ def test_sparse_native_page_routed_to_ocr(monkeypatch):
     class _CapturingBackend(OcrBackend):
         name = "fake"
 
-        def ocr_pages(self, pages, pdf_path, options, on_page_done=None):
+        def ocr_pages(self, pages, pdf_path, options, on_page_done=None, on_page_start=None):
             called.extend(p.page + 1 for p in pages)
             return {p.page + 1: "Nội dung OCR" for p in pages}
 
@@ -99,7 +99,7 @@ def test_sparse_native_page_routed_to_ocr(monkeypatch):
     monkeypatch.setattr(conv, "extract_pages", fake_extract_pages)
     monkeypatch.setattr(conv, "get_ocr_backend", lambda name: _CapturingBackend())
 
-    result = conv.convert_full("fake.pdf", show_progress=False)
+    result = conv.convert_full("fake.pdf", show_progress=False, use_cache=False)
     assert called == [1, 2]
     assert result.pages[0].source == "ocr"
 

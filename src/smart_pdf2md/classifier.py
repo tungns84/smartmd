@@ -6,6 +6,7 @@ import pdf_inspector
 
 from smart_pdf2md.errors import PdfReadError
 from smart_pdf2md.models import PageResult
+from smart_pdf2md.render import page_count_from_poppler
 
 PDF_TYPE_LABELS = {
     "text_based": "text_based",
@@ -49,12 +50,36 @@ class AnalysisResult:
         )
 
 
+def _stub_pages(page_count: int) -> list[PageResult]:
+    """Synthesize OCR-needed pages when pdf-inspector returns an empty page list."""
+    return [
+        PageResult(
+            page=index,
+            markdown="",
+            needs_ocr=True,
+            ocr_reason="pdf_inspector_empty",
+            source="native",
+        )
+        for index in range(page_count)
+    ]
+
+
 def analyze_pdf(path: str | Path) -> AnalysisResult:
     try:
         result = pdf_inspector.process_pdf(str(path))
     except Exception as exc:
         raise PdfReadError(f"Không thể đọc PDF {path}: {exc}") from exc
-    return AnalysisResult.from_pdf_result(result)
+    analysis = AnalysisResult.from_pdf_result(result)
+    if analysis.page_count <= 0:
+        fallback = page_count_from_poppler(path)
+        if fallback:
+            analysis.page_count = fallback
+            if not analysis.pdf_type or analysis.pdf_type == "text_based":
+                analysis.pdf_type = "scanned"
+                analysis.recommendation = _RECOMMENDATIONS["scanned"]
+            if not analysis.pages_needing_ocr:
+                analysis.pages_needing_ocr = list(range(1, fallback + 1))
+    return analysis
 
 
 def extract_pages(path: str | Path) -> tuple[list[PageResult], AnalysisResult]:
@@ -80,4 +105,12 @@ def extract_pages(path: str | Path) -> tuple[list[PageResult], AnalysisResult]:
         )
 
     analysis.pages_needing_ocr = sorted(ocr_pages)
+
+    if not pages and analysis.page_count > 0:
+        pages = _stub_pages(analysis.page_count)
+        analysis.pages_needing_ocr = list(range(1, analysis.page_count + 1))
+        if analysis.pdf_type == "text_based":
+            analysis.pdf_type = "scanned"
+            analysis.recommendation = _RECOMMENDATIONS["scanned"]
+
     return pages, analysis

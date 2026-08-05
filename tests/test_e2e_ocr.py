@@ -1,17 +1,19 @@
 import os
-from pathlib import Path
 
 import pytest
 
 from smart_pdf2md import convert_full
+from smart_pdf2md.config import Options
 from smart_pdf2md.errors import OcrBackendError
+from smart_pdf2md.models import PageResult
+from smart_pdf2md.ocr.paddleocr_backend import PaddleOcrBackend
 
 FIXTURES = os.path.join("tests", "fixtures", "input")
 THONG_TU = os.path.join(FIXTURES, "Thông-tư-89-2026-TT-BTC.pdf")
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("PDF2MD_OCR_E2E"),
-    reason="E2E OCR test cần llama-server đang chạy. Set PDF2MD_OCR_E2E=1 và SURYA_INFERENCE_URL=...",
+    reason="E2E OCR test cần PaddleOCR. Set PDF2MD_OCR_E2E=1 (xem docs/INSTALL.md).",
 )
 
 
@@ -35,21 +37,21 @@ def test_ocr_merge_native_and_ocr(tmp_path):
     assert len(result.pages[1].markdown) > 500
 
 
-def test_missing_server_raises_clear_error(monkeypatch):
-    monkeypatch.delenv("SURYA_INFERENCE_URL", raising=False)
-    monkeypatch.delenv("LLAMA_CPP_BINARY", raising=False)
-    monkeypatch.setattr("shutil.which", lambda _name: None)
-    from smart_pdf2md.ocr.surya_backend import SuryaBackend
-    from smart_pdf2md.models import PageResult
-    from smart_pdf2md.config import Options
+def test_missing_engine_raises_clear_error(monkeypatch):
+    import builtins
 
-    class FakePath(type(Path())):
-        def is_file(self):
-            return False
+    real_import = builtins.__import__
 
-    monkeypatch.setattr("smart_pdf2md.ocr.surya_backend.Path", FakePath)
-    with pytest.raises(OcrBackendError):
-        SuryaBackend().ocr_pages(
+    def fake_import(name, *args, **kwargs):
+        if name == "paddleocr" or name.startswith("paddleocr."):
+            raise ImportError("no paddleocr")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    backend = PaddleOcrBackend()
+    backend._engine = None
+    with pytest.raises(OcrBackendError, match="PaddleOCR chưa sẵn sàng"):
+        backend.ocr_pages(
             [PageResult(page=0, markdown="")],
             "x.pdf",
             Options(show_progress=False),

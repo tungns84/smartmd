@@ -18,10 +18,13 @@ def merge_pages(
     blocks: list[str] = []
     for page in pages:
         markdown = page.markdown.strip()
+        page_no = page.page + 1
         if not markdown:
+            # Keep a visible hole so silent OCR loss cannot hide in the doc.
+            blocks.append(f"<!-- Page {page_no}: OCR rỗng -->")
             continue
         if page_markers:
-            blocks.append(f"<!-- Page {page.page + 1} -->\n\n{markdown}")
+            blocks.append(f"<!-- Page {page_no} -->\n\n{markdown}")
         else:
             blocks.append(markdown)
 

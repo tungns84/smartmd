@@ -1,0 +1,21 @@
+# Deploy whitelist: only these two models are offered in the web UI.
+# Capabilities (dialect, fallback, vision limits) stay in the builtin registry;
+# this overlay only toggles commercial fields (enabled / label / pricing).
+
+[models."qwen3.7-plus"]
+enabled = true
+
+[models."minimax-m3"]
+enabled = true
+
+[models."qwen3.6-plus"]
+enabled = false
+
+[models."grok-4.5"]
+enabled = false
+
+[models."mimo-v2.5"]
+enabled = false
+
+[models."hy3"]
+enabled = false
