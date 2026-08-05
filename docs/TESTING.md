@@ -43,7 +43,7 @@ uv run python scripts/coverage_gate.py --update
 
 ## Golden CLI contracts
 
-Approved fixtures: `tests/fixtures/output/cli/*.approved.txt`. On mismatch the
+Approved fixtures: `tests/golden/cli/*.approved.txt`. On mismatch the
 harness writes `*.actual.txt` beside them. To accept an intentional CLI change,
 replace the approved file with the actual file and commit both the fixture and
 the reason in the commit message.
